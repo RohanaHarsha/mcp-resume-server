@@ -18,9 +18,15 @@ export async function startMcpSdkServer(resumePath: string) {
   // Tool: ask_resume
   server.tool(
     "ask_resume",
-    z.object({ question: z.string() }),
+    {
+      question: z.string().min(1),
+      resume: z.object(resume),
+    }, // Corrected from z.objext to z.object
     async (input, _requestInfo) => {
-      const answer = answerQuestion(resume, input.question);
+      const { resume: parsedResume, question } = z
+        .object({ resume: z.object(resume), question: z.string().min(1) })
+        .parse(input);
+      const answer = await answerQuestion(resume, question);
       return {
         content: [{ type: "text", text: answer }],
       };
@@ -30,13 +36,21 @@ export async function startMcpSdkServer(resumePath: string) {
   // Tool: send_email
   server.tool(
     "send_email",
-    z.object({
+    {
       to: z.string().min(1),
       subject: z.string().min(1),
       body: z.string().min(1),
-    }),
+    },
     async (input, _requestInfo) => {
-      const result = await sendEmail(input);
+      const result = await sendEmail(
+        z
+          .object({
+            to: z.string().min(1),
+            subject: z.string().min(1),
+            body: z.string().min(1),
+          })
+          .parse(input)
+      );
       return {
         content: [
           {
